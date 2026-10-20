@@ -1,29 +1,81 @@
+import java.io.File;
+import java.io.IOError;
+import java.io.IOException;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Scanner;
 
 public class Main {
+    static String PATH = System.getenv("PATH");
+    static String[] BUILT_IN_CMDS = new String[]{"echo", "exit", "type"};
     public static void main(String[] args) throws Exception {
         Scanner scanner = new Scanner(System.in);
+        label:
         do {
             System.out.print("$ ");
-            String command = scanner.nextLine();
-            if (command.equals("exit")) {break;}
-            else if (command.startsWith("echo ")) {System.out.println(command.substring(5));}
-            else if (command.startsWith("type ")) {
-                switch (command.substring(5)) {
-                    case "echo":
-                        System.out.println("echo is a shell builtin");
+            String input = scanner.nextLine();
+            String command = input.split(" ")[0];
+            String arg = input.substring(command.length());
+            List<Path> executables = getExecutablesFromPath();
+            switch (command) {
+                case "exit":
+                    break label;
+                case "echo":
+                    System.out.println(input.substring(4));
+                    break;
+                case "type":
+                    String target = arg.trim();
+                    if (Arrays.asList(BUILT_IN_CMDS).contains(target)) {
+                        System.out.println(target + " is a shell builtin");
                         break;
-                    case "exit":
-                        System.out.println("exit is a shell builtin");
-                        break;
-                    case "type":
-                        System.out.println("type is a shell builtin");
-                        break;
-                    default:
-                        System.out.println(command.substring(5) + ": not found");
-                }
+                    }
+                    Path found = null;
+                    for (Path exe : executables) {
+                        if (exe.getFileName().toString().equals(target)) {
+                            found = exe;
+                            break;
+                        }
+                    }
+                    if (found != null) {
+                        System.out.println(target + " is " + found);
+                    } else {
+                        System.out.println(target + ": not found");
+                    }
+                    break;
+                default:
+                    System.out.println(command + ": command not found");
+                    break;
             }
-            else {System.out.println(command + ": command not found");}
         } while (true);
+    }
+
+    public static List<Path> getExecutablesFromPath() {
+        List<Path> execs = new ArrayList<>();
+        if (PATH == null || PATH.isEmpty()) {
+            return execs;
+        }
+
+        for (String dir: PATH.split(File.pathSeparator)) {
+            if (dir.isEmpty()) continue;
+
+            Path dirPath = Paths.get(dir);
+            if (!Files.isDirectory(dirPath)) continue;
+
+            try (DirectoryStream<Path> entries = Files.newDirectoryStream(dirPath)) {
+                for (Path entry: entries) {
+                    if (Files.isRegularFile(entry) && Files.isExecutable(entry)) {
+                        execs.add(entry);
+                    }
+                }
+            } catch (IOException | SecurityException e) {
+
+            }
+        }
+        return execs;
     }
 }
