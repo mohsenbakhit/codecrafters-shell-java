@@ -19,14 +19,15 @@ public class Main {
         do {
             System.out.print("$ ");
             String input = scanner.nextLine();
-            String command = input.split(" ")[0];
-            String arg = input.substring(command.length());
+            String[] parts = input.trim().split("\\s+");
+            String command = parts[0];
+            String arg = String.join(" ", Arrays.copyOfRange(parts, 1, parts.length));
             List<Path> executables = getExecutablesFromPath();
             switch (command) {
                 case "exit":
                     break label;
                 case "echo":
-                    System.out.println(input.substring(4));
+                    System.out.println(arg);
                     break;
                 case "type":
                     String target = arg.trim();
