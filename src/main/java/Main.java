@@ -13,6 +13,7 @@ import java.util.Scanner;
 public class Main {
     static String PATH = System.getenv("PATH");
     static String[] BUILT_IN_CMDS = new String[]{"echo", "exit", "type"};
+    static List<Path> EXECUTABLES = getExecutablesFromPath();
     public static void main(String[] args) throws Exception {
         Scanner scanner = new Scanner(System.in);
         label:
@@ -22,7 +23,7 @@ public class Main {
             String[] parts = input.trim().split("\\s+");
             String command = parts[0];
             String arg = String.join(" ", Arrays.copyOfRange(parts, 1, parts.length));
-            List<Path> executables = getExecutablesFromPath();
+
             switch (command) {
                 case "exit":
                     break label;
@@ -35,13 +36,7 @@ public class Main {
                         System.out.println(target + " is a shell builtin");
                         break;
                     }
-                    Path found = null;
-                    for (Path exe : executables) {
-                        if (exe.getFileName().toString().equals(target)) {
-                            found = exe;
-                            break;
-                        }
-                    }
+                    Path found = findExecutable(target);
                     if (found != null) {
                         System.out.println(target + " is " + found);
                     } else {
@@ -49,13 +44,22 @@ public class Main {
                     }
                     break;
                 default:
-                    System.out.println(command + ": command not found");
+                    if (findExecutable(command) != null) {
+                        Process process = new ProcessBuilder(parts)
+                                .inheritIO()
+                                .start();
+                        process.waitFor();
+
+                    } else {
+                        System.out.println(command + ": command not found");
+                    }
+
                     break;
             }
         } while (true);
     }
 
-    public static List<Path> getExecutablesFromPath() {
+    static List<Path> getExecutablesFromPath() {
         List<Path> execs = new ArrayList<>();
         if (PATH == null || PATH.isEmpty()) {
             return execs;
@@ -78,5 +82,14 @@ public class Main {
             }
         }
         return execs;
+    }
+
+    static Path findExecutable(String name) {
+        for (Path exe : getExecutablesFromPath()) {
+            if (exe.getFileName().toString().equals(name)) {
+                return exe;
+            }
+        }
+        return null;
     }
 }
