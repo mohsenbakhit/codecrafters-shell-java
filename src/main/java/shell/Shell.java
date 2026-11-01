@@ -25,6 +25,7 @@ public class Shell {
         builtins.put("echo", (args, shell) -> System.out.println(String.join(" ", args)));
         builtins.put("exit", (args, shell) -> shell.stop());
         builtins.put("type", new TypeBuiltin());
+        builtins.put("pwd", (args, shell) -> System.out.println(System.getProperty("user.dir")));
     }
 
     public void run() throws Exception {
